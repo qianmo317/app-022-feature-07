@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import type { JSX, MouseEvent } from 'react';
-import type { Row, Worksheet } from '../types';
+import type { Layout, Row, Worksheet } from '../types';
 import { PAGE, clampLayout, paginate } from '../lib/layout';
 import { RowContent, ROW_FACTOR } from './paint';
 import { getStrokes } from '../lib/data';
@@ -67,6 +67,70 @@ function blockRanges(row: Row): { char: string; start: number; end: number }[] {
   });
 }
 
+type SheetPageProps = {
+  worksheet: Worksheet;
+  /** 已 clamp 的版式 */
+  layout: Layout;
+  rows: Row[];
+  /** 校验尺只出现在整份输出的第一张纸上 */
+  showRuler?: boolean;
+  plain?: boolean;
+  selectedChar?: string;
+  onSelectChar?: (ch: string) => void;
+};
+
+/** 一页字帖的纸面内容（页眉 + 行格）；页脚由外层按「纸」渲染，预览与打印拼版共用 */
+export function SheetPage({
+  worksheet,
+  layout,
+  rows,
+  showRuler,
+  plain,
+  selectedChar,
+  onSelectChar,
+}: SheetPageProps): JSX.Element {
+  const pinyinFor = pinyinResolver(worksheet);
+  const rowWidthMm = layout.perLine * layout.cellMm;
+  const rowHeightMm = layout.cellMm * ROW_FACTOR;
+
+  function handleRowClick(row: Row, e: MouseEvent<SVGSVGElement>) {
+    if (plain || !onSelectChar) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const unit = ((e.clientX - rect.left) / rect.width) * layout.perLine * 100;
+    const hit = blockRanges(row).find((r) => unit >= r.start && unit < r.end);
+    if (hit) onSelectChar(hit.char);
+  }
+
+  return (
+    <>
+      <div className="sheet-header" style={{ height: `${PAGE.headerMm}mm` }}>
+        <div className="sheet-title" data-testid="sheet-title">
+          {worksheet.title}
+        </div>
+        {showRuler && <Ruler />}
+      </div>
+      <div
+        className="sheet-rows"
+        style={{ display: 'flex', flexDirection: 'column', gap: `${layout.lineGapMm}mm` }}
+      >
+        {rows.map((row, ri) => (
+          <svg
+            key={ri}
+            className="row-svg"
+            data-row={ri}
+            width={`${rowWidthMm}mm`}
+            height={`${rowHeightMm}mm`}
+            viewBox={`0 0 ${layout.perLine * 100} 120`}
+            onClick={(e) => handleRowClick(row, e)}
+          >
+            <RowContent row={row} layout={layout} selectedChar={plain ? undefined : selectedChar} pinyinFor={pinyinFor} />
+          </svg>
+        ))}
+      </div>
+    </>
+  );
+}
+
 type PageViewProps = {
   worksheet: Worksheet;
   selectedChar?: string;
@@ -86,17 +150,6 @@ export const PageView = memo(function PageView({
 }: PageViewProps) {
   const layout = clampLayout(worksheet.layout);
   const pages = paginate(worksheet.chars, layout, strokeCountOf);
-  const pinyinFor = pinyinResolver(worksheet);
-  const rowWidthMm = layout.perLine * layout.cellMm;
-  const rowHeightMm = layout.cellMm * ROW_FACTOR;
-
-  function handleRowClick(row: Row, e: MouseEvent<SVGSVGElement>) {
-    if (plain || !onSelectChar) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const unit = ((e.clientX - rect.left) / rect.width) * layout.perLine * 100;
-    const hit = blockRanges(row).find((r) => unit >= r.start && unit < r.end);
-    if (hit) onSelectChar(hit.char);
-  }
 
   return (
     <div className={className} data-pages data-page-count={pages.length}>
@@ -114,30 +167,15 @@ export const PageView = memo(function PageView({
             paddingLeft: `${PAGE.marginLMm}mm`,
           }}
         >
-          <div className="sheet-header" style={{ height: `${PAGE.headerMm}mm` }}>
-            <div className="sheet-title" data-testid="sheet-title">
-              {worksheet.title}
-            </div>
-            {pi === 0 && <Ruler />}
-          </div>
-          <div
-            className="sheet-rows"
-            style={{ display: 'flex', flexDirection: 'column', gap: `${layout.lineGapMm}mm` }}
-          >
-            {rows.map((row, ri) => (
-              <svg
-                key={ri}
-                className="row-svg"
-                data-row={ri}
-                width={`${rowWidthMm}mm`}
-                height={`${rowHeightMm}mm`}
-                viewBox={`0 0 ${layout.perLine * 100} 120`}
-                onClick={(e) => handleRowClick(row, e)}
-              >
-                <RowContent row={row} layout={layout} selectedChar={plain ? undefined : selectedChar} pinyinFor={pinyinFor} />
-              </svg>
-            ))}
-          </div>
+          <SheetPage
+            worksheet={worksheet}
+            layout={layout}
+            rows={rows}
+            showRuler={pi === 0}
+            plain={plain}
+            selectedChar={selectedChar}
+            onSelectChar={onSelectChar}
+          />
           <div className="sheet-footer" data-page-num={pi + 1}>
             第 {pi + 1} 页 / 共 {pages.length} 页
           </div>

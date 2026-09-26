@@ -11,7 +11,8 @@
 - **描红与临写**：浅灰描红字、空格临写，可按行混合排布
 - **分页不拆字**：贪心分页算法保证同一个字的所有小格始终位于同一页同一行，绝不跨页拆字
 - **多音字支持**：内置多音字词典，拼音按语境标注
-- **1:1 校验尺**：每页附 100mm 校验尺（96dpi 下 ≈ 377.95px），打印后可核对实际物理尺寸
+- **1:1 校验尺**：打印输出的第 1 张纸附 100mm 校验尺（96dpi 下 ≈ 377.95px），打印后可核对实际物理尺寸
+- **打印范围与拼版**：打印视图可选起止页码（范围外不参与打印），每张纸可放 1 页或 2 页（2 页上下排、整页缩到一半宽高），并预告「将打印 N 张纸、每张纸是哪几页」
 - **导出**：单页导出 SVG / PNG（4x 高清），打印走浏览器 `Ctrl/Cmd+P`（A4、页边距 0）
 - **模板库**：预置五套模板（一年级生字、古诗、姓名练字、ABC、拼音）
 - **离线笔顺数据**：`public/data/strokes.json` 内置 1096 个常用字（hanzi-writer-v1 格式，2.59MB），加载后完全离线可用
@@ -47,12 +48,13 @@ app-022/
 │   ├── components/
 │   │   ├── StrokePlayer.tsx      # 笔顺逐笔动画播放器
 │   │   ├── paint.tsx             # 渲染组件层
-│   │   └── PageView.tsx          # 单页视图
+│   │   ├── PageView.tsx          # 单页视图（SheetPage：页眉 + 行格）
+│   │   └── PrintSheets.tsx       # 打印拼版（页码范围分组、每张纸 1/2 页）
 │   ├── pages/                    # Home / Editor / PrintView / Library / Play
 │   ├── hooks.ts                  # useWorksheetDoc / isFormTarget
 │   ├── App.tsx / main.tsx / styles.css / types.ts
-├── tests/unit/                   # 31 个单元测试（layout/pinyin/strokes-data/data-import）
-├── e2e/                          # 24 个 Playwright E2E 用例（main-flow / print-and-perf）
+├── tests/unit/                   # 35 个单元测试（layout/pinyin/strokes-data/data-import/print-sheets）
+├── e2e/                          # 27 个 Playwright E2E 用例（main-flow / print-and-perf）
 ├── playwright.config.ts          # E2E 端口 4322（preview 服务器）
 ├── Dockerfile                    # node:20-alpine 构建 → nginx:1.27-alpine-slim 运行
 ├── nginx.conf                    # gzip / /healthz / 静态缓存策略 / SPA 回退
@@ -83,10 +85,10 @@ npm run gen:data     # 生成 public/data/strokes.json
 ## 测试
 
 ```bash
-# 单元测试（31 项：分页不拆字 / buildBlock 规则 / 笔顺数据完整性 / 拼音多音字 / 去重排序等）
+# 单元测试（35 项：分页不拆字 / buildBlock 规则 / 笔顺数据完整性 / 拼音多音字 / 去重排序 / 打印拼版分组等）
 npm test
 
-# E2E 测试（24 项：主流程 / 去重 / 导出 / 100 字分页 10 页 / 1:1 校验尺 / PDF 页数 / 性能 / healthz）
+# E2E 测试（27 项：主流程 / 去重 / 导出 / 100 字分页 10 页 / 1:1 校验尺 / 打印范围与拼版 / PDF 页数 / 性能 / healthz）
 npx playwright install chromium   # 首次需要
 npm run e2e                       # 端口 4322，自动拉起 preview 服务器
 ```

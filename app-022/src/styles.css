@@ -113,6 +113,15 @@ textarea { width: 100%; resize: vertical; }
   max-width: 210mm; margin: 0 auto 12px; display: flex; gap: 12px; align-items: center;
   background: #fff; padding: 10px 14px; border-radius: 8px; flex-wrap: wrap;
 }
+.print-toolbar .print-field { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #374151; }
+.print-toolbar .print-field input[type="number"] { width: 64px; }
+/* 拼版：一张纸上下两个半页槽位，槽内整页缩放 50% 并水平居中 */
+.sheet-imposed { position: relative; }
+.sheet-slots { display: flex; flex-direction: column; }
+.sheet-slot { overflow: hidden; display: flex; justify-content: center; }
+.slot-zoom { flex-shrink: 0; overflow: hidden; }
+.slot-page { background: #fff; }
+.sheet-footer-float { position: absolute; right: 5mm; bottom: 2mm; padding-top: 0; }
 @media print {
   @page { size: A4 portrait; margin: 0; }
   html, body { background: #fff; }
